@@ -1,0 +1,214 @@
+version: '3.8'
+
+# ============================================================================
+# IRAQI MARKETPLACE PLATFORM - DOCKER COMPOSE CONFIGURATION
+# ============================================================================
+# Run entire stack with: docker-compose up -d
+# Stop everything with: docker-compose down
+# View logs with: docker-compose logs -f [service-name]
+
+services:
+  # ========================================================================
+  # PostgreSQL Database
+  # ========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: marketplace-postgres
+    environment:
+      POSTGRES_DB: marketplace_db
+      POSTGRES_USER: marketplace_user
+      POSTGRES_PASSWORD: change_me_in_production
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/database/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace_user -d marketplace_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # ========================================================================
+  # Redis Cache & Session Store
+  # ========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: marketplace-redis
+    command: redis-server --appendonly yes --requirepass changeme
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # ========================================================================
+  # Elasticsearch - Full-text Search Engine
+  # ========================================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.0.0
+    container_name: marketplace-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=changeme
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # ========================================================================
+  # Kibana - Elasticsearch UI (Optional, for development)
+  # ========================================================================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.0.0
+    container_name: marketplace-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # ========================================================================
+  # NestJS Backend API
+  # ========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: development
+    container_name: marketplace-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://marketplace_user:change_me_in_production@postgres:5432/marketplace_db
+      REDIS_URL: redis://:changeme@redis:6379/0
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production-min-32-chars
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/node_modules:/app/node_modules
+    command: npm run start:dev
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # ========================================================================
+  # Next.js Web Frontend
+  # ========================================================================
+  frontend-web:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+    container_name: marketplace-web
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NODE_ENV: development
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend-web/src:/app/src
+      - ./frontend-web/node_modules:/app/node_modules
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+  # ========================================================================
+  # Nginx Reverse Proxy (Production-like setup)
+  # ========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: marketplace-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - frontend-web
+    networks:
+      - marketplace-network
+    restart: unless-stopped
+
+# ============================================================================
+# VOLUMES - Data Persistence
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+# ============================================================================
+# NETWORKS - Service Communication
+# ============================================================================
+networks:
+  marketplace-network:
+    driver: bridge
+
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+# Start all services:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f                    # All services
+#   docker-compose logs -f backend            # Only backend
+#   docker-compose logs -f postgres           # Only postgres
+#
+# Stop all services:
+#   docker-compose down
+#
+# Rebuild images:
+#   docker-compose up -d --build
+#
+# Connect to PostgreSQL:
+#   docker exec -it marketplace-postgres psql -U marketplace_user -d marketplace_db
+#
+# View Elasticsearch data:
+#   curl http://localhost:9200/_search
+#
+# Redis CLI:
+#   docker exec -it marketplace-redis redis-cli -a changeme
