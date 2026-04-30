@@ -1,11 +1,10 @@
-import { Get, Controller, Param, Version } from '@nestjs/common';
+import { Get, Controller, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { UserResponseDto } from '../dto/auth.dto';
 
-@Controller('users')
+@Controller({ path: 'users', version: '1' })
 @ApiTags('Users')
-@Version('1')
 export class UsersController {
   constructor(private authService: AuthService) {}
 

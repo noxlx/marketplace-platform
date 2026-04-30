@@ -6,7 +6,6 @@ import {
   Body,
   UseGuards,
   Request,
-  Version,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,9 +25,8 @@ import {
   UserResponseDto,
 } from '../dto/auth.dto';
 
-@Controller('auth')
+@Controller({ path: 'auth', version: '1' })
 @ApiTags('Authentication')
-@Version('1')
 export class AuthController {
   constructor(private authService: AuthService) {}
 

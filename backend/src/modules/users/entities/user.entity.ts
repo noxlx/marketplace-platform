@@ -5,7 +5,15 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
+import { Favorite } from '../../favorites/entities/favorite.entity';
+import { Review } from '../../reviews/entities/review.entity';
+import { Notification } from '../../notifications/entities/notification.entity';
+import { Conversation } from '../../chat/entities/conversation.entity';
+import { ChatMessage } from '../../chat/entities/chat-message.entity';
+import { Report } from '../../reports/entities/report.entity';
+import { AdminLog } from '../../admin/entities/admin-log.entity';
 
 @Entity('users')
 @Index(['phoneNumber'], { unique: true })
@@ -41,6 +49,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 20, default: 'inactive' })
   status: 'active' | 'inactive' | 'suspended' | 'banned';
+
+  @Column({ type: 'varchar', length: 20, default: 'user' })
+  role: 'user' | 'admin';
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
   rating: number;
@@ -92,4 +103,38 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   deletedAt: Date;
+
+  // Relations
+  @OneToMany('Listing', 'user')
+  listings: any[];
+
+  @OneToMany(() => Favorite, (favorite) => favorite.user)
+  favorites: Favorite[];
+
+  @OneToMany(() => Review, (review) => review.reviewer)
+  reviewsGiven: Review[];
+
+  @OneToMany(() => Review, (review) => review.reviewedUser)
+  reviewsReceived: Review[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
+
+  @OneToMany(() => Conversation, (conversation) => conversation.buyer)
+  conversationsAsBuyer: Conversation[];
+
+  @OneToMany(() => Conversation, (conversation) => conversation.seller)
+  conversationsAsSeller: Conversation[];
+
+  @OneToMany(() => ChatMessage, (message) => message.sender)
+  chatMessages: ChatMessage[];
+
+  @OneToMany(() => Report, (report) => report.reporter)
+  reportsMade: Report[];
+
+  @OneToMany(() => Report, (report) => report.reportedUser)
+  reportsReceived: Report[];
+
+  @OneToMany(() => AdminLog, (log) => log.admin)
+  adminLogs: AdminLog[];
 }

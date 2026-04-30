@@ -7,11 +7,12 @@ import { User } from './entities/user.entity';
 import { AuthService } from './services/auth.service';
 import { AuthController } from './controllers/auth.controller';
 import { UsersController } from './controllers/users.controller';
-import { SmsService } from '../notifications/services/sms.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
+    NotificationsModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
@@ -23,7 +24,7 @@ import { SmsService } from '../notifications/services/sms.service';
     }),
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, SmsService],
-  exports: [AuthService, SmsService],
+  providers: [AuthService],
+  exports: [AuthService],
 })
 export class UsersModule {}
