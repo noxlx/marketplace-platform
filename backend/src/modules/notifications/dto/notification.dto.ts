@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { NotificationType } from '../entities/notification.entity';
 
 export class CreateNotificationDto {
@@ -78,4 +78,26 @@ export class NotificationsResponseDto {
 export class UnreadCountDto {
   @ApiProperty()
   unreadCount: number;
+}
+
+export class NotificationPreferencesDto {
+  @ApiProperty({ enum: ['ar', 'ku', 'en'], required: false })
+  @IsOptional()
+  @IsIn(['ar', 'ku', 'en'])
+  language?: 'ar' | 'ku' | 'en';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  notifications?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  emailNotifications?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  smsNotifications?: boolean;
 }

@@ -218,6 +218,45 @@ export class ListingDto {
   expiresAt: Date;
 }
 
+export class ListingReviewSummaryDto {
+  @ApiProperty()
+  averageRating: number;
+
+  @ApiProperty()
+  totalReviews: number;
+}
+
+export class ListingReviewPreviewDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  reviewerId: string;
+
+  @ApiProperty()
+  reviewedUserId: string;
+
+  @ApiProperty()
+  listingId: string;
+
+  @ApiProperty()
+  rating: number;
+
+  @ApiProperty({ required: false })
+  comment?: string;
+
+  @ApiProperty()
+  createdAt: Date;
+}
+
+export class ListingDetailsDto extends ListingDto {
+  @ApiProperty({ type: ListingReviewSummaryDto })
+  reviewSummary: ListingReviewSummaryDto;
+
+  @ApiProperty({ isArray: true, type: ListingReviewPreviewDto })
+  reviews: ListingReviewPreviewDto[];
+}
+
 // ============================================================================
 // PAGINATED LISTINGS RESPONSE DTO
 // ============================================================================

@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Delete, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Get, Post, Delete, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { FavoritesService } from '../services/favorites.service';
-import { FavoriteDto, FavoritesResponseDto, FavoriteStatusDto } from '../dto/favorite.dto';
+import { AddFavoriteDto, FavoriteDto, FavoritesResponseDto, FavoriteStatusDto } from '../dto/favorite.dto';
 
 @ApiTags('Favorites')
 @ApiBearerAuth()
@@ -11,6 +11,19 @@ import { FavoriteDto, FavoritesResponseDto, FavoriteStatusDto } from '../dto/fav
 @Controller('api/v1/favorites')
 export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get my favorite listings' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiResponse({ status: 200, type: FavoritesResponseDto })
+  async findMineAlias(
+    @CurrentUser() userId: string,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+  ): Promise<FavoritesResponseDto> {
+    return this.favoritesService.findMine(userId, page, pageSize);
+  }
 
   @Get('me')
   @ApiOperation({ summary: 'Get my favorite listings' })
@@ -23,6 +36,17 @@ export class FavoritesController {
     @Query('pageSize') pageSize: number = 20,
   ): Promise<FavoritesResponseDto> {
     return this.favoritesService.findMine(userId, page, pageSize);
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a listing to my favorites' })
+  @ApiResponse({ status: 201, type: FavoriteDto })
+  async addFromBody(
+    @CurrentUser() userId: string,
+    @Body() dto: AddFavoriteDto,
+  ): Promise<FavoriteDto> {
+    return this.favoritesService.add(userId, dto.listingId);
   }
 
   @Get(':listingId/status')

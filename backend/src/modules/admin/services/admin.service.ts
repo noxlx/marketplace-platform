@@ -9,7 +9,9 @@ import { AdminLog } from '../entities/admin-log.entity';
 import {
   AdminLogDto,
   AdminLogsResponseDto,
+  AdminReportsResponseDto,
   AdminStatsDto,
+  UpdateAdminReportStatusDto,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
 } from '../dto/admin.dto';
@@ -137,6 +139,50 @@ export class AdminService {
     };
   }
 
+  async listReports(
+    page: number = 1,
+    pageSize: number = 20,
+    status?: Report['status'],
+  ): Promise<AdminReportsResponseDto> {
+    const skip = (page - 1) * pageSize;
+    const where = status ? { status } : {};
+    const [reports, total] = await this.reportsRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      data: reports.map((report) => this.mapReport(report)),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async updateReportStatus(
+    adminId: string,
+    reportId: string,
+    dto: UpdateAdminReportStatusDto,
+  ) {
+    const report = await this.reportsRepository.findOne({ where: { id: reportId } });
+    if (!report) {
+      throw new NotFoundException(`Report with id '${reportId}' not found`);
+    }
+
+    const previousStatus = report.status;
+    report.status = dto.status;
+    const saved = await this.reportsRepository.save(report);
+    await this.log(adminId, 'update_report_status', 'report', reportId, {
+      previousStatus,
+      status: dto.status,
+    });
+
+    return this.mapReport(saved);
+  }
+
   async log(
     adminId: string,
     action: string,
@@ -164,6 +210,20 @@ export class AdminService {
       targetId: log.targetId,
       details: log.details,
       createdAt: log.createdAt,
+    };
+  }
+
+  private mapReport(report: Report) {
+    return {
+      id: report.id,
+      reporterId: report.reporterId,
+      reportedId: report.reportedId,
+      listingId: report.listingId,
+      reason: report.reason,
+      description: report.description,
+      status: report.status,
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
     };
   }
 }

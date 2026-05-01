@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsUUID } from 'class-validator';
 import { ListingDto } from '../../listings/dto/listing.dto';
+
+export class AddFavoriteDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsUUID()
+  listingId: string;
+}
 
 export class FavoriteDto {
   @ApiProperty()

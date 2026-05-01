@@ -6,7 +6,9 @@ import { AdminGuard } from '../guards/admin.guard';
 import { AdminService } from '../services/admin.service';
 import {
   AdminLogsResponseDto,
+  AdminReportsResponseDto,
   AdminStatsDto,
+  UpdateAdminReportStatusDto,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
 } from '../dto/admin.dto';
@@ -67,6 +69,31 @@ export class AdminController {
     @Body('reason') reason?: string,
   ) {
     return this.adminService.suspendListing(adminId, listingId, reason);
+  }
+
+  @Get('reports')
+  @ApiOperation({ summary: 'List reports for admin moderation' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiResponse({ status: 200, type: AdminReportsResponseDto })
+  async listReports(
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+    @Query('status') status?: 'pending' | 'investigating' | 'resolved' | 'dismissed',
+  ): Promise<AdminReportsResponseDto> {
+    return this.adminService.listReports(page, pageSize, status);
+  }
+
+  @Put('reports/:reportId/status')
+  @ApiOperation({ summary: 'Update report moderation status' })
+  @ApiParam({ name: 'reportId', description: 'Report ID' })
+  async updateReportStatus(
+    @CurrentUser() adminId: string,
+    @Param('reportId') reportId: string,
+    @Body() dto: UpdateAdminReportStatusDto,
+  ) {
+    return this.adminService.updateReportStatus(adminId, reportId, dto);
   }
 
   @Get('logs')

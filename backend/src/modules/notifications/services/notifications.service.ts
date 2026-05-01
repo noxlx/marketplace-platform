@@ -2,9 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from '../entities/notification.entity';
+import { User } from '../../users/entities/user.entity';
 import {
   CreateNotificationDto,
   NotificationDto,
+  NotificationPreferencesDto,
   NotificationsResponseDto,
   UnreadCountDto,
 } from '../dto/notification.dto';
@@ -14,6 +16,8 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   async create(dto: CreateNotificationDto): Promise<NotificationDto> {
@@ -75,6 +79,38 @@ export class NotificationsService {
     );
 
     return { updated: result.affected || 0 };
+  }
+
+  async getPreferences(userId: string): Promise<NotificationPreferencesDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with id '${userId}' not found`);
+    }
+
+    return {
+      language: user.preferences?.language || 'en',
+      notifications: user.preferences?.notifications ?? true,
+      emailNotifications: user.preferences?.emailNotifications ?? false,
+      smsNotifications: user.preferences?.smsNotifications ?? true,
+    };
+  }
+
+  async updatePreferences(
+    userId: string,
+    dto: NotificationPreferencesDto,
+  ): Promise<NotificationPreferencesDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with id '${userId}' not found`);
+    }
+
+    user.preferences = {
+      ...(user.preferences || {}),
+      ...dto,
+    };
+    await this.usersRepository.save(user);
+
+    return this.getPreferences(userId);
   }
 
   private mapNotification(notification: Notification): NotificationDto {

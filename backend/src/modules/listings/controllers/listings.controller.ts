@@ -26,6 +26,7 @@ import {
   CreateListingDto,
   UpdateListingDto,
   ListingDto,
+  ListingDetailsDto,
   ListingsResponseDto,
   ListingFiltersDto,
   AddListingImageDto,
@@ -146,6 +147,21 @@ export class ListingsController {
     @Query('pageSize') pageSize: number = 20,
   ) {
     return this.listingsService.findByUser(userId, page, pageSize);
+  }
+
+  /**
+   * Get listing details with recent reviews and rating summary
+   */
+  @Get(':id/details')
+  @ApiOperation({ summary: 'Get listing details with reviews' })
+  @ApiParam({ name: 'id', description: 'Listing ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Listing details found',
+    type: ListingDetailsDto,
+  })
+  async findDetails(@Param('id') id: string): Promise<ListingDetailsDto> {
+    return this.listingsService.findDetails(id);
   }
 
   /**

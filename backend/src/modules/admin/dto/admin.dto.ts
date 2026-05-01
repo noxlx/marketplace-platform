@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { ReportDto } from '../../reports/dto/report.dto';
 
 export class AdminStatsDto {
   @ApiProperty()
@@ -76,4 +77,27 @@ export class AdminLogsResponseDto {
 
   @ApiProperty()
   totalPages: number;
+}
+
+export class AdminReportsResponseDto {
+  @ApiProperty({ isArray: true, type: ReportDto })
+  data: ReportDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
+
+  @ApiProperty()
+  totalPages: number;
+}
+
+export class UpdateAdminReportStatusDto {
+  @ApiProperty({ enum: ['pending', 'investigating', 'resolved', 'dismissed'] })
+  @IsEnum(['pending', 'investigating', 'resolved', 'dismissed'])
+  status: 'pending' | 'investigating' | 'resolved' | 'dismissed';
 }

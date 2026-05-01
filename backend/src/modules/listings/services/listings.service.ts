@@ -5,15 +5,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, Between, MoreThan, LessThan } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Listing, ListingStatus } from '../entities/listing.entity';
 import { ListingImage } from '../entities/listing-image.entity';
 import { ListingAttribute } from '../entities/listing-attribute.entity';
 import { Category } from '../../categories/entities/category.entity';
+import { Review } from '../../reviews/entities/review.entity';
 import {
   CreateListingDto,
   UpdateListingDto,
   ListingDto,
+  ListingDetailsDto,
   ListingFiltersDto,
   AddListingImageDto,
   PromoteListingDto,
@@ -30,6 +32,8 @@ export class ListingsService {
     private listingAttributesRepository: Repository<ListingAttribute>,
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
+    @InjectRepository(Review)
+    private reviewsRepository: Repository<Review>,
   ) {}
 
   /**
@@ -160,6 +164,38 @@ export class ListingsService {
     await this.listingsRepository.save(listing);
 
     return this.enrichListing(listing);
+  }
+
+  async findDetails(id: string): Promise<ListingDetailsDto> {
+    const listing = await this.findOne(id);
+    const [reviews, totalReviews] = await this.reviewsRepository.findAndCount({
+      where: { listingId: id },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+    const ratingStats = await this.reviewsRepository
+      .createQueryBuilder('review')
+      .select('AVG(review.rating)', 'averageRating')
+      .where('review.listingId = :id', { id })
+      .getRawOne<{ averageRating: string | null }>();
+    const averageRating = ratingStats?.averageRating ? Number(ratingStats.averageRating) : 0;
+
+    return {
+      ...listing,
+      reviewSummary: {
+        averageRating: Number(averageRating.toFixed(2)),
+        totalReviews,
+      },
+      reviews: reviews.map((review) => ({
+        id: review.id,
+        reviewerId: review.reviewerId,
+        reviewedUserId: review.reviewedUserId,
+        listingId: review.listingId,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+      })),
+    };
   }
 
   /**

@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { NotificationsService } from '../services/notifications.service';
 import {
   NotificationDto,
+  NotificationPreferencesDto,
   NotificationsResponseDto,
   UnreadCountDto,
 } from '../dto/notification.dto';
@@ -36,6 +37,23 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: UnreadCountDto })
   async unreadCount(@CurrentUser() userId: string): Promise<UnreadCountDto> {
     return this.notificationsService.unreadCount(userId);
+  }
+
+  @Get('me/preferences')
+  @ApiOperation({ summary: 'Get my notification preferences' })
+  @ApiResponse({ status: 200, type: NotificationPreferencesDto })
+  async getPreferences(@CurrentUser() userId: string): Promise<NotificationPreferencesDto> {
+    return this.notificationsService.getPreferences(userId);
+  }
+
+  @Put('me/preferences')
+  @ApiOperation({ summary: 'Update my notification preferences' })
+  @ApiResponse({ status: 200, type: NotificationPreferencesDto })
+  async updatePreferences(
+    @CurrentUser() userId: string,
+    @Body() dto: NotificationPreferencesDto,
+  ): Promise<NotificationPreferencesDto> {
+    return this.notificationsService.updatePreferences(userId, dto);
   }
 
   @Put('me/read-all')
