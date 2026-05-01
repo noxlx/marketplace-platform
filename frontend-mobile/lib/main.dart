@@ -45,7 +45,7 @@ class MarketplaceMobileApp extends StatelessWidget {
             foregroundColor: Color(0xFF1F2933),
             elevation: 0,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             elevation: 0,
             color: Colors.white,
             shape: RoundedRectangleBorder(
