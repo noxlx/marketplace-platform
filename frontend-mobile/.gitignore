@@ -1,0 +1,74 @@
+# Flutter build directory
+build/
+/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+pubspec.lock
+
+# iOS/macOS build files
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Pods/
+macos/Pods/
+.ios/
+.macos/
+
+# Android build files
+android/.gradle
+android/gradle
+android/.idea
+android/local.properties
+android/**/GeneratedPluginRegistrant.java
+android/**/gradlew
+android/**/gradlew.bat
+android/**/key.properties
+android/app/debug
+android/app/profile
+android/app/release
+
+# Web build files
+web/
+
+# Environment variables (keep .env.example only)
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.idea/
+*.swp
+*.swo
+.vscode/
+*.code-workspace
+*.iml
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+
+# OS specific
+.DS_Store
+Thumbs.db
+.directory
+
+# Generated files
+*.dart.js
+*.dart.js.map
+*.dart.js_*.unoptimized.js
+*.dart.js_*.unoptimized.js.map
+
+# Screenshots
+flutter_*.png
+screenshot*.png
+
+# App-specific
+*.apk
+*.app
+*.aab
+*.ipa
+*.dmg
+*.deb

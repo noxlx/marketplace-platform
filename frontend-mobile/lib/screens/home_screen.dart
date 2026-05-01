@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/auth_user.dart';
 import '../models/category.dart';
 import '../models/listing.dart';
 import '../models/notification_item.dart';
+import '../providers/auth_provider.dart';
+import '../providers/marketplace_provider.dart';
 import '../services/api_client.dart';
 import '../widgets/auth_sheet.dart';
 import '../widgets/create_listing_sheet.dart';
@@ -17,27 +20,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _apiClient = ApiClient();
   final _searchController = TextEditingController();
   final _cityController = TextEditingController();
   final _pageController = PageController();
 
   int _tabIndex = 0;
-  bool _loading = false;
-  bool _demoMode = true;
-  String _selectedCategory = '';
-  String _token = '';
-  AuthUser? _user;
-  Map<String, dynamic>? _adminStats;
-
-  List<Category> _categories = _fallbackCategories;
-  List<Listing> _listings = _fallbackListings;
-  List<NotificationItem> _notifications = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadMarketplace();
+    // Load marketplace data when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MarketplaceProvider>().loadMarketplace();
+    });
   }
 
   @override
@@ -48,57 +43,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadMarketplace() async {
-    setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        _apiClient.searchListings(
-          query: _searchController.text.trim(),
-          city: _cityController.text.trim(),
-          category: _selectedCategory,
-        ),
-        _apiClient.getCategories(),
-      ]);
-
-      setState(() {
-        _listings = (results[0] as List<Listing>).isEmpty ? _fallbackListings : results[0] as List<Listing>;
-        _categories = results[1] as List<Category>;
-        _demoMode = false;
-      });
-    } catch (_) {
-      setState(() {
-        _listings = _filterFallback();
-        _categories = _fallbackCategories;
-        _demoMode = true;
-      });
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  List<Listing> _filterFallback() {
-    final query = _searchController.text.trim().toLowerCase();
-    final city = _cityController.text.trim().toLowerCase();
-    return _fallbackListings.where((listing) {
-      final matchesQuery = query.isEmpty ||
-          '${listing.title} ${listing.description}'.toLowerCase().contains(query);
-      final matchesCity = city.isEmpty || listing.city.toLowerCase().contains(city);
-      final matchesCategory = _selectedCategory.isEmpty || listing.categoryId == _selectedCategory;
-      return matchesQuery && matchesCity && matchesCategory;
-    }).toList();
-  }
-
   void _openAuthSheet() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (_) => AuthSheet(
-        apiClient: _apiClient,
+        apiClient: context.read<ApiClient>(),
         onVerified: (session) {
-          setState(() {
-            _token = session.accessToken;
-            _user = session.user;
-          });
+          // Auth state is automatically updated by AuthProvider
           _loadNotifications();
         },
       ),
@@ -106,59 +58,66 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openCreateListingSheet() {
-    if (_token.isEmpty) {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) {
       _showSnack('Sign in before creating a listing.');
       return;
     }
 
+    final marketplace = context.read<MarketplaceProvider>();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (_) => CreateListingSheet(
-        apiClient: _apiClient,
-        token: _token,
-        categories: _categories,
+        apiClient: context.read<ApiClient>(),
+        token: auth.accessToken,
+        categories: marketplace.categories,
         onCreated: () {
           _showSnack('Listing created.');
-          _loadMarketplace();
+          marketplace.loadMarketplace();
         },
       ),
     );
   }
 
   Future<void> _favoriteListing(String listingId) async {
-    if (_token.isEmpty) {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) {
       _showSnack('Sign in first to save listings.');
       return;
     }
 
     try {
-      await _apiClient.favoriteListing(_token, listingId);
+      await context.read<MarketplaceProvider>().favoriteListing(auth.accessToken, listingId);
       _showSnack('Listing saved.');
     } catch (error) {
       _showSnack(error.toString());
     }
   }
 
-  Future<void> _loadNotifications() async {
-    if (_token.isEmpty) return;
-    try {
-      final notifications = await _apiClient.getNotifications(_token);
-      setState(() => _notifications = notifications);
-    } catch (_) {
-      setState(() => _notifications = const []);
+  Future<void> _loadMarketplace() async {
+    await context.read<MarketplaceProvider>().loadMarketplace(
+          query: _searchController.text.trim(),
+          city: _cityController.text.trim(),
+        );
+  }
+
+  void _loadNotifications() {
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated) {
+      context.read<MarketplaceProvider>().loadNotifications(auth.accessToken);
     }
   }
 
   Future<void> _loadAdminStats() async {
-    if (_token.isEmpty) {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) {
       _showSnack('Sign in with an admin account.');
       return;
     }
 
     try {
-      final stats = await _apiClient.getAdminStats(_token);
-      setState(() => _adminStats = stats);
+      await context.read<MarketplaceProvider>().loadAdminStats(auth.accessToken);
     } catch (error) {
       _showSnack(error.toString());
     }
@@ -182,80 +141,131 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Iraqi Marketplace'),
-            Text(
-              _demoMode ? 'Demo data mode' : 'Live API connected',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: const Color(0xFF667085),
-                  ),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Iraqi Marketplace'),
+                Consumer<MarketplaceProvider>(
+                  builder: (context, marketplace, _) {
+                    return Text(
+                      marketplace.demoMode ? 'Demo data mode' : 'Live API connected',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: const Color(0xFF667085),
+                          ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Sign in',
-            onPressed: _openAuthSheet,
-            icon: Icon(_user == null ? Icons.login : Icons.account_circle_outlined),
+            actions: [
+              IconButton(
+                tooltip: auth.isAuthenticated ? auth.user?.displayName ?? 'Account' : 'Sign in',
+                onPressed: auth.isAuthenticated
+                    ? () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          builder: (_) => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Account',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text('Phone: ${auth.user?.phoneNumber}'),
+                                  Text('Name: ${auth.user?.displayName}'),
+                                  const SizedBox(height: 20),
+                                  FilledButton.tonal(
+                                    onPressed: () {
+                                      auth.signOut();
+                                      context.read<MarketplaceProvider>().clearData();
+                                      Navigator.pop(context);
+                                      _showSnack('Signed out');
+                                    },
+                                    child: const Text('Sign out'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    : _openAuthSheet,
+                icon: Icon(auth.isAuthenticated ? Icons.account_circle : Icons.login),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) => setState(() => _tabIndex = index),
-        children: [
-          _buildBrowseTab(),
-          _buildNotificationsTab(),
-          _buildAdminTab(),
-        ],
-      ),
-      floatingActionButton: _tabIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: _openCreateListingSheet,
-              icon: const Icon(Icons.add),
-              label: const Text('Sell'),
-            )
-          : null,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabIndex,
-        onDestinationSelected: _setTab,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.search), label: 'Browse'),
-          NavigationDestination(icon: Icon(Icons.notifications_none), label: 'Alerts'),
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Admin'),
-        ],
-      ),
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: (index) => setState(() => _tabIndex = index),
+            children: [
+              _buildBrowseTab(),
+              _buildNotificationsTab(),
+              _buildAdminTab(),
+            ],
+          ),
+          floatingActionButton: _tabIndex == 0
+              ? FloatingActionButton.extended(
+                  onPressed: _openCreateListingSheet,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Sell'),
+                )
+              : null,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _tabIndex,
+            onDestinationSelected: _setTab,
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.search), label: 'Browse'),
+              NavigationDestination(icon: Icon(Icons.notifications_none), label: 'Alerts'),
+              NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Admin'),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildBrowseTab() {
-    return RefreshIndicator(
-      onRefresh: _loadMarketplace,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-        children: [
-          _buildSearchBox(),
-          const SizedBox(height: 12),
-          _buildCategories(),
-          const SizedBox(height: 14),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            ..._listings.map(
-              (listing) => ListingCard(
-                listing: listing,
-                onFavorite: () => _favoriteListing(listing.id),
-              ),
-            ),
-        ],
-      ),
+    return Consumer<MarketplaceProvider>(
+      builder: (context, marketplace, _) {
+        final filtered = marketplace.filterListings(
+          query: _searchController.text.trim(),
+          city: _cityController.text.trim(),
+          category: '',
+        );
+
+        return RefreshIndicator(
+          onRefresh: _loadMarketplace,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+            children: [
+              _buildSearchBox(),
+              const SizedBox(height: 12),
+              _buildCategories(),
+              const SizedBox(height: 14),
+              if (marketplace.loading)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                ...filtered.map(
+                  (listing) => ListingCard(
+                    listing: listing,
+                    onFavorite: () => _favoriteListing(listing.id),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -298,6 +308,179 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  Widget _buildCategories() {
+    return Consumer<MarketplaceProvider>(
+      builder: (context, marketplace, _) {
+        return SizedBox(
+          height: 46,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: const Text('All'),
+                  selected: true,
+                  onSelected: (_) => _loadMarketplace(),
+                ),
+              ),
+              for (final category in marketplace.categories)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(category.name),
+                    selected: false,
+                    onSelected: (_) => _loadMarketplace(),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationsTab() {
+    return Consumer<MarketplaceProvider>(
+      builder: (context, marketplace, _) {
+        return Consumer<AuthProvider>(
+          builder: (context, auth, _) {
+            return RefreshIndicator(
+              onRefresh: () async {
+                if (auth.isAuthenticated) {
+                  await marketplace.loadNotifications(auth.accessToken);
+                }
+              },
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Text(
+                    'Notifications',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (!auth.isAuthenticated)
+                    const _EmptyState(message: 'Sign in to load notifications and chat alerts.')
+                  else if (marketplace.notifications.isEmpty)
+                    const _EmptyState(message: 'No notifications yet.')
+                  else
+                    ...marketplace.notifications.map(
+                      (item) => Card(
+                        child: ListTile(
+                          leading: Icon(item.isRead ? Icons.notifications_none : Icons.notifications_active),
+                          title: Text(item.title),
+                          subtitle: Text(item.message),
+                          trailing: Text(item.type),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAdminTab() {
+    const keys = ['users', 'activeUsers', 'listings', 'activeListings', 'pendingReports', 'conversations'];
+
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        return Consumer<MarketplaceProvider>(
+          builder: (context, marketplace, _) {
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Admin overview',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                    IconButton.filledTonal(
+                      onPressed: _loadAdminStats,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (!auth.isAuthenticated)
+                  const _EmptyState(message: 'Sign in with an admin account to load stats.')
+                else if (marketplace.adminStats == null)
+                  const _EmptyState(message: 'Admin stats are not loaded yet.')
+                else
+                  GridView.count(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.35,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    children: [
+                      for (final key in keys)
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(_labelFor(key)),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${marketplace.adminStats![key] ?? '-'}',
+                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _labelFor(String key) {
+    return key.replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}').toLowerCase();
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          message,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: const Color(0xFF667085),
+              ),
+        ),
+      ),
+    );
+  }
+}
 
   Widget _buildCategories() {
     return SizedBox(
