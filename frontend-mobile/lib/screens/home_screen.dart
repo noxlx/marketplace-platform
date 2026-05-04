@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/auth_user.dart';
-import '../models/category.dart';
-import '../models/listing.dart';
-import '../models/notification_item.dart';
 import '../providers/auth_provider.dart';
 import '../providers/marketplace_provider.dart';
 import '../services/api_client.dart';

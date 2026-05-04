@@ -1,584 +1,229 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Bell,
-  Car,
-  CheckCircle2,
-  Heart,
-  Home,
-  LayoutDashboard,
-  ListFilter,
-  Loader2,
-  LogIn,
-  MessageSquare,
-  Plus,
-  Search,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Star,
-  Store,
-  UserRound,
-} from 'lucide-react';
-import { api, API_BASE_URL } from '@/api/client';
-import type { AuthUser, Category, Listing, Notification } from '@/types/marketplace';
+import { useState } from 'react';
+import Link from 'next/link';
 
-const fallbackCategories: Category[] = [
-  { id: 'cars', name: 'Cars', slug: 'cars', sortOrder: 1, isActive: true },
-  { id: 'real-estate', name: 'Real Estate', slug: 'real-estate', sortOrder: 2, isActive: true },
-  { id: 'electronics', name: 'Electronics', slug: 'electronics', sortOrder: 3, isActive: true },
-  { id: 'jobs', name: 'Jobs', slug: 'jobs', sortOrder: 4, isActive: true },
-  { id: 'furniture', name: 'Furniture', slug: 'furniture', sortOrder: 5, isActive: true },
-  { id: 'general', name: 'General', slug: 'general', sortOrder: 6, isActive: true },
+interface Listing {
+  id: string;
+  title: string;
+  price: number;
+  city: string;
+  category: string;
+  image: string;
+  views: number;
+  favorites: number;
+}
+
+const CATEGORIES = [
+  { id: 'cars', name: 'Cars' },
+  { id: 'real-estate', name: 'Real Estate' },
+  { id: 'electronics', name: 'Electronics' },
+  { id: 'furniture', name: 'Furniture' },
+  { id: 'phones', name: 'Phones' },
+  { id: 'computers', name: 'Computers' },
 ];
 
-const fallbackListings: Listing[] = [
+const LISTINGS: Listing[] = [
   {
-    id: 'demo-1',
-    userId: 'seller-1',
-    categoryId: 'cars',
-    categoryName: 'Cars',
+    id: '1',
     title: 'Toyota Land Cruiser GXR 2021',
-    description: 'Clean title, full service history, leather interior, ready for inspection.',
     price: 58500,
     city: 'Baghdad',
-    location: 'Mansour',
-    status: 'active',
+    category: 'Cars',
+    image: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=500&q=60',
     views: 1240,
-    favoritesCount: 86,
-    isFeatured: true,
-    isTop: true,
-    userName: 'Karrar Motors',
-    userRating: 4.8,
-    primaryImage: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=900&q=80',
-    createdAt: new Date().toISOString(),
+    favorites: 86,
   },
   {
-    id: 'demo-2',
-    userId: 'seller-2',
-    categoryId: 'real-estate',
-    categoryName: 'Real Estate',
+    id: '2',
     title: 'Modern family house near Erbil Citadel',
-    description: 'Three bedrooms, private garden, parking, and a bright open living space.',
     price: 185000,
     city: 'Erbil',
-    location: 'Ainkawa',
-    status: 'active',
+    category: 'Real Estate',
+    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=500&q=60',
     views: 856,
-    favoritesCount: 44,
-    isFeatured: true,
-    isTop: false,
-    userName: 'Darin Properties',
-    userRating: 4.6,
-    primaryImage: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
-    createdAt: new Date().toISOString(),
+    favorites: 44,
   },
   {
-    id: 'demo-3',
-    userId: 'seller-3',
-    categoryId: 'electronics',
-    categoryName: 'Electronics',
-    title: 'iPhone 15 Pro Max 256GB',
-    description: 'Natural titanium, battery health 99%, box and original cable included.',
-    price: 1025,
-    city: 'Basra',
-    location: 'Ashar',
-    status: 'active',
-    views: 2340,
-    favoritesCount: 132,
-    isFeatured: false,
-    isTop: true,
-    userName: 'Basra Tech',
-    userRating: 4.9,
-    primaryImage: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=900&q=80',
-    createdAt: new Date().toISOString(),
+    id: '3',
+    title: 'iPhone 13 Pro 256GB - Excellent Condition',
+    price: 450,
+    city: 'Baghdad',
+    category: 'Phones',
+    image: 'https://images.unsplash.com/photo-1592286927505-1def25115558?auto=format&fit=crop&w=500&q=60',
+    views: 523,
+    favorites: 34,
   },
   {
-    id: 'demo-4',
-    userId: 'seller-4',
-    categoryId: 'furniture',
-    categoryName: 'Furniture',
-    title: 'Walnut dining set for eight',
-    description: 'Solid wood table, eight chairs, excellent condition, delivery available.',
-    price: 740,
-    city: 'Najaf',
-    location: 'Al Salam',
-    status: 'active',
-    views: 421,
-    favoritesCount: 18,
-    isFeatured: false,
-    isTop: false,
-    userName: 'Home Select',
-    userRating: 4.3,
-    primaryImage: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=900&q=80',
-    createdAt: new Date().toISOString(),
+    id: '4',
+    title: 'Gaming Laptop - ASUS ROG 2023',
+    price: 1200,
+    city: 'Erbil',
+    category: 'Computers',
+    image: 'https://images.unsplash.com/photo-1588872657840-218e412ee62e?auto=format&fit=crop&w=500&q=60',
+    views: 345,
+    favorites: 23,
+  },
+  {
+    id: '5',
+    title: 'Vintage Wooden Dining Set',
+    price: 800,
+    city: 'Baghdad',
+    category: 'Furniture',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=60',
+    views: 412,
+    favorites: 18,
+  },
+  {
+    id: '6',
+    title: 'Smart TV 55 inch 4K LG',
+    price: 650,
+    city: 'Baghdad',
+    category: 'Electronics',
+    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=500&q=60',
+    views: 678,
+    favorites: 45,
   },
 ];
 
-type ViewMode = 'browse' | 'sell' | 'messages' | 'admin';
+export default function Home() {
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function MarketplacePage() {
-  const [query, setQuery] = useState('');
-  const [city, setCity] = useState('');
-  const [category, setCategory] = useState('');
-  const [view, setView] = useState<ViewMode>('browse');
-  const [listings, setListings] = useState<Listing[]>(fallbackListings);
-  const [categories, setCategories] = useState<Category[]>(fallbackCategories);
-  const [loading, setLoading] = useState(false);
-  const [apiState, setApiState] = useState<'live' | 'demo'>('demo');
-  const [token, setToken] = useState('');
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [notice, setNotice] = useState('');
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [adminStats, setAdminStats] = useState<Record<string, number> | null>(null);
-
-  useEffect(() => {
-    const savedToken = window.localStorage.getItem('marketplace-token') || '';
-    const savedUser = window.localStorage.getItem('marketplace-user');
-    if (savedToken) setToken(savedToken);
-    if (savedUser) setUser(JSON.parse(savedUser) as AuthUser);
-  }, []);
-
-  const loadMarketplace = useCallback(async (nextQuery: string, nextCategory: string, nextCity: string) => {
-    setLoading(true);
-    try {
-      const [searchResponse, categoriesResponse] = await Promise.all([
-        api.searchListings({
-          q: nextQuery,
-          category: nextCategory,
-          city: nextCity,
-          includeFacets: true,
-          pageSize: 24,
-        }),
-        api.getCategories(),
-      ]);
-
-      setListings(searchResponse.results.length ? searchResponse.results : fallbackListings);
-      setCategories(Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse.data);
-      setApiState('live');
-    } catch {
-      setListings(filterFallback(nextQuery, nextCategory, nextCity));
-      setCategories(fallbackCategories);
-      setApiState('demo');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadMarketplace('', '', '');
-  }, [loadMarketplace]);
-
-  async function refreshNotifications() {
-    if (!token) return;
-    try {
-      const response = await api.getNotifications(token);
-      setNotifications(response.data);
-    } catch {
-      setNotifications([]);
-    }
-  }
-
-  async function refreshAdminStats() {
-    if (!token) return;
-    try {
-      setAdminStats(await api.getAdminStats(token));
-    } catch {
-      setAdminStats(null);
-    }
-  }
-
-  function handleSearch(event: FormEvent) {
-    event.preventDefault();
-    void loadMarketplace(query, category, city);
-  }
-
-  async function favoriteListing(listingId: string) {
-    if (!token) {
-      setNotice('Sign in first to save listings.');
-      return;
-    }
-
-    try {
-      await api.addFavorite(token, listingId);
-      setNotice('Listing saved to favorites.');
-    } catch {
-      setNotice('Could not save this listing yet.');
-    }
-  }
-
-  async function handleVerified(nextToken: string, nextUser: AuthUser) {
-    setToken(nextToken);
-    setUser(nextUser);
-    window.localStorage.setItem('marketplace-token', nextToken);
-    window.localStorage.setItem('marketplace-user', JSON.stringify(nextUser));
-    setNotice(`Welcome, ${nextUser.firstName}.`);
-    await Promise.all([refreshNotifications(), refreshAdminStats()]);
-  }
-
-  const activeCategory = useMemo(
-    () => categories.find((item) => item.id === category || item.slug === category || item.name === category),
-    [categories, category],
-  );
+  const filteredListings = LISTINGS.filter(listing => {
+    const matchesCategory = !selectedCategory || listing.category === selectedCategory;
+    const matchesSearch = !searchQuery || listing.title.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <main className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <Store aria-hidden="true" />
-          <div>
-            <strong>Iraqi Marketplace</strong>
-            <span>{apiState === 'live' ? 'Live API connected' : 'Demo data mode'}</span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Buy & Sell Locally</h1>
+          <p className="text-lg text-teal-100 mb-8">Find great deals on anything you want or sell what you don't need</p>
+          
+          {/* Search Bar */}
+          <div className="bg-white rounded-lg shadow-lg p-4">
+            <input
+              type="text"
+              placeholder="Search for items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 text-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
           </div>
         </div>
+      </section>
 
-        <nav className="nav" aria-label="Primary">
-          <button className={view === 'browse' ? 'active' : ''} onClick={() => setView('browse')}>
-            <Search aria-hidden="true" /> Browse
-          </button>
-          <button className={view === 'sell' ? 'active' : ''} onClick={() => setView('sell')}>
-            <Plus aria-hidden="true" /> Sell
-          </button>
-          <button className={view === 'messages' ? 'active' : ''} onClick={() => setView('messages')}>
-            <MessageSquare aria-hidden="true" /> Messages
-          </button>
-          <button className={view === 'admin' ? 'active' : ''} onClick={() => setView('admin')}>
-            <LayoutDashboard aria-hidden="true" /> Admin
-          </button>
-        </nav>
-
-        <div className="sidebar-panel">
-          <span className="label">Categories</span>
-          <div className="category-list">
-            <button className={!category ? 'selected' : ''} onClick={() => { setCategory(''); void loadMarketplace(query, '', city); }}>
-              <ListFilter aria-hidden="true" /> All categories
+      {/* Category Filter */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setSelectedCategory('')}
+              className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition ${
+                !selectedCategory
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Categories
             </button>
-            {categories.map((item) => (
+            {CATEGORIES.map(cat => (
               <button
-                key={item.id}
-                className={category === item.id || category === item.slug ? 'selected' : ''}
-                onClick={() => {
-                  const nextCategory = item.id || item.slug;
-                  setCategory(nextCategory);
-                  void loadMarketplace(query, nextCategory, city);
-                }}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition ${
+                  selectedCategory === cat.name
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                {item.slug === 'cars' ? <Car aria-hidden="true" /> : <Home aria-hidden="true" />}
-                {item.name}
+                {cat.name}
               </button>
             ))}
           </div>
         </div>
-      </aside>
-
-      <section className="workspace">
-        <header className="topbar">
-          <form className="searchbar" onSubmit={handleSearch}>
-            <Search aria-hidden="true" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search cars, homes, phones..." />
-            <input value={city} onChange={(event) => setCity(event.target.value)} placeholder="City" />
-            <button type="submit" aria-label="Search listings">
-              {loading ? <Loader2 className="spin" aria-hidden="true" /> : <SlidersHorizontal aria-hidden="true" />}
-            </button>
-          </form>
-
-          <div className="account-strip">
-            <button className="icon-button" onClick={() => void refreshNotifications()} aria-label="Refresh notifications">
-              <Bell aria-hidden="true" />
-              {notifications.length > 0 && <span>{notifications.length}</span>}
-            </button>
-            {user ? (
-              <div className="user-chip">
-                <UserRound aria-hidden="true" />
-                <span>{user.firstName}</span>
-              </div>
-            ) : (
-              <span className="muted">Guest</span>
-            )}
-          </div>
-        </header>
-
-        {notice && (
-          <button className="notice" onClick={() => setNotice('')}>
-            <CheckCircle2 aria-hidden="true" /> {notice}
-          </button>
-        )}
-
-        {view === 'browse' && (
-          <BrowseView
-            listings={listings}
-            activeCategory={activeCategory}
-            loading={loading}
-            onFavorite={favoriteListing}
-          />
-        )}
-        {view === 'sell' && <SellView token={token} categories={categories} onCreated={() => void loadMarketplace(query, category, city)} onNotice={setNotice} />}
-        {view === 'messages' && <MessagesView signedIn={!!token} notifications={notifications} />}
-        {view === 'admin' && <AdminView token={token} stats={adminStats} onRefresh={() => void refreshAdminStats()} />}
       </section>
 
-      <aside className="right-panel">
-        <AuthPanel onVerified={handleVerified} user={user} />
-        <div className="api-card">
-          <span className="label">Backend</span>
-          <strong>{API_BASE_URL}</strong>
-          <p>{apiState === 'live' ? 'Requests are hitting the NestJS API.' : 'Backend is offline or empty; UI is using sample listings.'}</p>
-        </div>
-        <div className="api-card">
-          <span className="label">Workflow</span>
-          <div className="mini-steps">
-            <span><ShieldCheck aria-hidden="true" /> OTP auth</span>
-            <span><Sparkles aria-hidden="true" /> Search</span>
-            <span><MessageSquare aria-hidden="true" /> Chat</span>
+      {/* Listings Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {filteredListings.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No listings found</p>
           </div>
-        </div>
-      </aside>
-    </main>
-  );
-}
-
-function filterFallback(nextQuery: string, nextCategory: string, nextCity: string) {
-  return fallbackListings.filter((listing) => {
-    const matchesQuery = !nextQuery || `${listing.title} ${listing.description}`.toLowerCase().includes(nextQuery.toLowerCase());
-    const matchesCategory = !nextCategory || listing.categoryId === nextCategory || listing.categoryName === nextCategory;
-    const matchesCity = !nextCity || listing.city.toLowerCase().includes(nextCity.toLowerCase());
-    return matchesQuery && matchesCategory && matchesCity;
-  });
-}
-
-function BrowseView({
-  listings,
-  activeCategory,
-  loading,
-  onFavorite,
-}: {
-  listings: Listing[];
-  activeCategory?: Category;
-  loading: boolean;
-  onFavorite: (listingId: string) => void;
-}) {
-  return (
-    <section className="content-flow">
-      <div className="section-heading">
-        <div>
-          <span className="label">Marketplace</span>
-          <h1>{activeCategory ? activeCategory.name : 'Fresh listings across Iraq'}</h1>
-        </div>
-        <div className="metric-row">
-          <span>{listings.length} listings</span>
-          <span>Updated now</span>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="loading-state"><Loader2 className="spin" aria-hidden="true" /> Loading marketplace...</div>
-      ) : (
-        <div className="listing-grid">
-          {listings.map((listing) => (
-            <article className="listing-card" key={listing.id}>
-              <div
-                className="listing-image"
-                role="img"
-                aria-label={listing.title}
-                style={{ backgroundImage: `url(${listing.primaryImage || listing.images?.[0]?.imageUrl || fallbackListings[0].primaryImage})` }}
-              />
-              <div className="listing-body">
-                <div className="listing-meta">
-                  <span>{listing.categoryName || listing.categoryId}</span>
-                  <span>{listing.city}</span>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredListings.map(listing => (
+              <Link
+                key={listing.id}
+                href={`/listings/${listing.id}`}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden group"
+              >
+                <div className="relative overflow-hidden h-48 bg-gray-200">
+                  <img
+                    src={listing.image}
+                    alt={listing.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition"
+                  />
+                  <div className="absolute top-2 right-2 bg-white rounded-full p-2 cursor-pointer hover:bg-gray-100">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </div>
                 </div>
-                <h2>{listing.title}</h2>
-                <p>{listing.description}</p>
-                <div className="listing-bottom">
-                  <strong>${Number(listing.price).toLocaleString()}</strong>
-                  <button onClick={() => onFavorite(listing.id)} aria-label="Save listing">
-                    <Heart aria-hidden="true" />
+                
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{listing.title}</h3>
+                  
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-lg font-bold text-teal-600">${listing.price.toLocaleString()}</span>
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{listing.category}</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-xs text-gray-500 mb-3">
+                    <span>📍 {listing.city}</span>
+                    <span>👁️ {listing.views}</span>
+                  </div>
+                  
+                  <button className="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition font-medium">
+                    View Details
                   </button>
                 </div>
-                <div className="seller-line">
-                  <span>{listing.userName || 'Local seller'}</span>
-                  <span><Star aria-hidden="true" /> {listing.userRating || 4.5}</span>
-                  <span>{listing.favoritesCount} saved</span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function SellView({
-  token,
-  categories,
-  onCreated,
-  onNotice,
-}: {
-  token: string;
-  categories: Category[];
-  onCreated: () => void;
-  onNotice: (notice: string) => void;
-}) {
-  const [saving, setSaving] = useState(false);
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!token) {
-      onNotice('Sign in before creating a listing.');
-      return;
-    }
-
-    const data = new FormData(event.currentTarget);
-    setSaving(true);
-    try {
-      await api.createListing(token, {
-        categoryId: data.get('categoryId'),
-        title: data.get('title'),
-        description: data.get('description'),
-        price: Number(data.get('price')),
-        city: data.get('city'),
-        location: data.get('location'),
-        images: [data.get('imageUrl')].filter(Boolean),
-        attributes: {
-          condition: data.get('condition'),
-        },
-      });
-      onNotice('Listing created.');
-      event.currentTarget.reset();
-      onCreated();
-    } catch {
-      onNotice('Could not create listing. Check backend data and auth.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <section className="form-surface">
-      <div className="section-heading">
-        <div>
-          <span className="label">Sell</span>
-          <h1>Create a listing</h1>
-        </div>
-      </div>
-      <form className="listing-form" onSubmit={submit}>
-        <label>Title<input name="title" required minLength={5} placeholder="Samsung Galaxy S24 Ultra" /></label>
-        <label>Category<select name="categoryId" required>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label>Description<textarea name="description" required minLength={10} placeholder="Condition, included accessories, delivery details..." /></label>
-        <label>Price<input name="price" type="number" min="1" required placeholder="950" /></label>
-        <label>City<input name="city" required placeholder="Baghdad" /></label>
-        <label>Location<input name="location" placeholder="Mansour" /></label>
-        <label>Image URL<input name="imageUrl" placeholder="https://..." /></label>
-        <label>Condition<input name="condition" placeholder="like new" /></label>
-        <button className="primary-action" type="submit" disabled={saving}>
-          {saving ? <Loader2 className="spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}
-          Publish listing
-        </button>
-      </form>
-    </section>
-  );
-}
-
-function MessagesView({ signedIn, notifications }: { signedIn: boolean; notifications: Notification[] }) {
-  return (
-    <section className="split-view">
-      <div className="section-heading">
-        <div>
-          <span className="label">Inbox</span>
-          <h1>Messages and alerts</h1>
-        </div>
-      </div>
-      <div className="message-list">
-        {!signedIn && <p className="empty">Sign in to load conversations from the backend.</p>}
-        {notifications.length === 0 && signedIn && <p className="empty">No notifications yet.</p>}
-        {notifications.map((item) => (
-          <article className="message-item" key={item.id}>
-            <Bell aria-hidden="true" />
-            <div>
-              <strong>{item.title}</strong>
-              <p>{item.message}</p>
-            </div>
-            <span>{item.isRead ? 'Read' : 'New'}</span>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AdminView({ token, stats, onRefresh }: { token: string; stats: Record<string, number> | null; onRefresh: () => void }) {
-  return (
-    <section className="content-flow">
-      <div className="section-heading">
-        <div>
-          <span className="label">Admin</span>
-          <h1>Operations overview</h1>
-        </div>
-        <button className="secondary-action" onClick={onRefresh} disabled={!token}>
-          <LayoutDashboard aria-hidden="true" /> Refresh
-        </button>
-      </div>
-      <div className="stats-grid">
-        {['users', 'activeUsers', 'listings', 'activeListings', 'pendingReports', 'conversations'].map((key) => (
-          <div className="stat-card" key={key}>
-            <span>{key.replace(/([A-Z])/g, ' $1')}</span>
-            <strong>{stats?.[key] ?? '-'}</strong>
+              </Link>
+            ))}
           </div>
-        ))}
-      </div>
-      {!token && <p className="empty">Sign in with an admin account to load live moderation stats.</p>}
-    </section>
-  );
-}
+        )}
+      </section>
 
-function AuthPanel({ onVerified, user }: { onVerified: (token: string, user: AuthUser) => void; user: AuthUser | null }) {
-  const [phoneNumber, setPhoneNumber] = useState('+964');
-  const [otp, setOtp] = useState('');
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  async function sendOtp() {
-    setBusy(true);
-    try {
-      await api.sendOtp(phoneNumber);
-      setSent(true);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyOtp() {
-    setBusy(true);
-    try {
-      const response = await api.verifyOtp(phoneNumber, otp);
-      onVerified(response.accessToken, response.user);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (user) {
-    return (
-      <div className="auth-card">
-        <span className="label">Signed in</span>
-        <strong>{user.firstName} {user.lastName}</strong>
-        <p>{user.city} - rating {user.rating || 0}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="auth-card">
-      <span className="label">Account</span>
-      <strong>OTP sign in</strong>
-      <input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="+964..." />
-      {sent && <input value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="6-digit OTP" />}
-      <button onClick={sent ? verifyOtp : sendOtp} disabled={busy}>
-        {busy ? <Loader2 className="spin" aria-hidden="true" /> : <LogIn aria-hidden="true" />}
-        {sent ? 'Verify OTP' : 'Send OTP'}
-      </button>
+      {/* How It Works */}
+      <section className="bg-gray-100 py-12 mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow text-center">
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="font-bold text-lg mb-2">Browse & Search</h3>
+              <p className="text-gray-600">Find exactly what you're looking for using our easy search and filters.</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow text-center">
+              <div className="text-4xl mb-4">💬</div>
+              <h3 className="font-bold text-lg mb-2">Connect & Chat</h3>
+              <p className="text-gray-600">Message sellers directly to ask questions and negotiate prices.</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow text-center">
+              <div className="text-4xl mb-4">✅</div>
+              <h3 className="font-bold text-lg mb-2">Buy or Sell</h3>
+              <p className="text-gray-600">Complete your transaction safely and securely.</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

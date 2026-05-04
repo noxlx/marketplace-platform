@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'models/listing.dart';
 import 'providers/auth_provider.dart';
 import 'providers/marketplace_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/browse_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/favorites_screen.dart';
+import 'screens/listing_detail_screen.dart';
+import 'screens/main_navigation_screen.dart';
+import 'screens/my_listings_screen.dart';
+import 'screens/profile_screen.dart';
 import 'services/api_client.dart';
 
 void main() {
@@ -54,7 +61,28 @@ class MarketplaceMobileApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const HomeScreen(),
+        home: const MainNavigationScreen(),
+        onGenerateRoute: (settings) {
+          switch (settings.name) {
+            case '/listing-detail':
+              final listing = settings.arguments as Listing;
+              return MaterialPageRoute(
+                builder: (context) => ListingDetailScreen(listing: listing),
+              );
+            case '/chat':
+              final listingId = settings.arguments as String?;
+              return MaterialPageRoute(
+                builder: (context) => const ChatScreen(),
+              );
+            case '/chat-detail':
+              final conversation = settings.arguments as ChatConversation;
+              return MaterialPageRoute(
+                builder: (context) => ChatDetailScreen(conversation: conversation),
+              );
+            default:
+              return null;
+          }
+        },
       ),
     );
   }

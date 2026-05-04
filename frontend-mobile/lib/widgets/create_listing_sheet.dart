@@ -103,7 +103,7 @@ class _CreateListingSheetState extends State<CreateListingSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _categoryId,
+              initialValue: _categoryId,
               items: widget.categories
                   .map((category) => DropdownMenuItem(value: category.id, child: Text(category.name)))
                   .toList(),
