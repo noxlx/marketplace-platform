@@ -11,26 +11,26 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50">
+      <body className="bg-gradient-to-b from-secondary-50 to-primary-50">
         {/* Header/Navigation */}
-        <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <header className="sticky top-0 z-40 bg-white border-b border-primary-100 shadow-md-glow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-teal-600 rounded flex items-center justify-center">
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-md-glow group-hover:shadow-lg-glow transition-all">
                   <span className="text-white font-bold text-lg">🏪</span>
                 </div>
-                <span className="text-xl font-bold text-gray-900 hidden sm:inline">Marketplace</span>
+                <span className="text-xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent hidden sm:inline">Marketplace</span>
               </Link>
 
               {/* Search Bar - Desktop */}
               <div className="hidden md:flex flex-1 max-w-md mx-6">
-                <div className="relative w-full">
+                <div className="relative w-full group">
                   <input
                     type="text"
                     placeholder="Search listings..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-2 border border-primary-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent group-hover:border-primary-300 transition-colors"
                   />
                   <svg className="absolute right-3 top-2.5 text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 {/* Create Button */}
                 <Link
                   href="/listings/create"
-                  className="hidden sm:flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
+                  className="hidden sm:flex items-center gap-2 bg-gradient-primary text-white px-4 py-2 rounded-lg hover:shadow-lg-glow transition-all duration-300 hover:scale-105 font-medium"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -54,28 +54,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </Link>
 
                 {/* Icons */}
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition relative">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+                <button className="p-2.5 hover:bg-primary-100 rounded-lg transition-colors duration-200 relative group">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary-700 group-hover:text-primary-700">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-accent-red rounded-full animate-pulse-glow"></span>
                 </button>
 
-                <Link href="/favorites" className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+                <Link href="/favorites" className="p-2.5 hover:bg-primary-100 rounded-lg transition-colors duration-200 group">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary-700 group-hover:text-accent-red">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                   </svg>
                 </Link>
 
-                <Link href="/chat" className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+                <Link href="/chat" className="p-2.5 hover:bg-primary-100 rounded-lg transition-colors duration-200 group">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary-700 group-hover:text-primary-700">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
                 </Link>
 
-                <Link href="/profile" className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+                <Link href="/profile" className="p-2.5 hover:bg-primary-100 rounded-lg transition-colors duration-200 group">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary-700 group-hover:text-primary-700">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                   </svg>
@@ -84,12 +84,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
 
             {/* Search Bar - Mobile */}
-            <div className="md:hidden pb-3">
-              <div className="relative">
+            <div className="md:hidden pb-3 animate-fade-in">
+              <div className="relative group">
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-2 border border-primary-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
                 />
                 <svg className="absolute right-3 top-2.5 text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -106,47 +106,47 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </main>
 
         {/* Footer */}
-        <footer className="bg-gray-900 text-gray-300 mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-              <div>
-                <h3 className="text-white font-semibold mb-4">Browse</h3>
+        <footer className="bg-gradient-to-r from-secondary-800 via-secondary-900 to-secondary-800 text-secondary-300 mt-20 border-t border-primary-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+              <div className="group">
+                <h3 className="text-white font-semibold mb-4 group-hover:text-primary-400 transition-colors">Browse</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white">All Categories</a></li>
-                  <li><a href="#" className="hover:text-white">Popular</a></li>
-                  <li><a href="#" className="hover:text-white">Recently Added</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">All Categories</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Popular</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Recently Added</a></li>
                 </ul>
               </div>
-              <div>
-                <h3 className="text-white font-semibold mb-4">Selling</h3>
+              <div className="group">
+                <h3 className="text-white font-semibold mb-4 group-hover:text-primary-400 transition-colors">Selling</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white">Post Listing</a></li>
-                  <li><a href="#" className="hover:text-white">My Listings</a></li>
-                  <li><a href="#" className="hover:text-white">Pricing</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Post Listing</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">My Listings</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
                 </ul>
               </div>
-              <div>
-                <h3 className="text-white font-semibold mb-4">Support</h3>
+              <div className="group">
+                <h3 className="text-white font-semibold mb-4 group-hover:text-primary-400 transition-colors">Support</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white">Help Center</a></li>
-                  <li><a href="#" className="hover:text-white">Contact Us</a></li>
-                  <li><a href="#" className="hover:text-white">Safety</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Safety</a></li>
                 </ul>
               </div>
-              <div>
-                <h3 className="text-white font-semibold mb-4">About</h3>
+              <div className="group">
+                <h3 className="text-white font-semibold mb-4 group-hover:text-primary-400 transition-colors">About</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white">About Us</a></li>
-                  <li><a href="#" className="hover:text-white">Blog</a></li>
-                  <li><a href="#" className="hover:text-white">Terms</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Terms</a></li>
                 </ul>
               </div>
             </div>
-            <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-              <p className="text-sm">&copy; 2026 Iraqi Marketplace. All rights reserved.</p>
+            <div className="border-t border-secondary-700 pt-8 flex flex-col md:flex-row justify-between items-center">
+              <p className="text-sm text-secondary-400">&copy; 2026 Iraqi Marketplace. All rights reserved.</p>
               <div className="flex gap-6 mt-4 md:mt-0">
-                <a href="#" className="text-sm hover:text-white">Privacy Policy</a>
-                <a href="#" className="text-sm hover:text-white">Terms of Service</a>
+                <a href="#" className="text-sm hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="text-sm hover:text-white transition-colors">Terms of Service</a>
               </div>
             </div>
           </div>
